@@ -1,0 +1,94 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: payetonkawa-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: payetonkawa_rabbit
+      RABBITMQ_DEFAULT_VHOST: payetonkawa
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - payetonkawa-network
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  customer-api:
+    image: payetonkawa/customer-api:latest
+    container_name: payetonkawa-customer-api
+    environment:
+      - DATABASE_URL=${CUSTOMER_DATABASE_URL}
+      - RABBITMQ_URL=amqp://admin:payetonkawa_rabbit@rabbitmq:5672/payetonkawa
+      - API_TOKEN=${CUSTOMER_API_TOKEN}
+      - SERVICE_NAME=customer-api
+    ports:
+      - "8001:8001"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - payetonkawa-network
+    restart: "no"
+
+  product-api:
+    image: payetonkawa/product-api:latest
+    container_name: payetonkawa-product-api
+    environment:
+      - DATABASE_URL=${PRODUCT_DATABASE_URL}
+      - RABBITMQ_URL=amqp://admin:payetonkawa_rabbit@rabbitmq:5672/payetonkawa
+      - API_TOKEN=${PRODUCT_API_TOKEN}
+      - SERVICE_NAME=product-api
+    ports:
+      - "8002:8002"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - payetonkawa-network
+    restart: "no"
+
+  order-api:
+    image: payetonkawa/order-api:latest
+    container_name: payetonkawa-order-api
+    environment:
+      - DATABASE_URL=${ORDER_DATABASE_URL}
+      - RABBITMQ_URL=amqp://admin:payetonkawa_rabbit@rabbitmq:5672/payetonkawa
+      - API_TOKEN=${ORDER_API_TOKEN}
+      - SERVICE_NAME=order-api
+      - CUSTOMER_API_URL=http://customer-api:8001
+      - PRODUCT_API_URL=http://product-api:8002
+    ports:
+      - "8003:8003"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - payetonkawa-network
+    restart: "no"
+
+# ===================
+# NETWORKS
+# ===================
+networks:
+  payetonkawa-network:
+    driver: bridge
+    name: payetonkawa-network
+    enable_ipv6: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+        - subnet: 2001:db8::/32
+
+# ===================
+# VOLUMES
+# ===================
+volumes:
+  rabbitmq_data:
+    driver: local
