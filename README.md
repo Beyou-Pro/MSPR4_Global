@@ -46,15 +46,14 @@ PayeTonKawa is a coffee import company that sells to both individuals and profes
    git clone https://github.com/Annarummaarthur/MSPR4_Produits
    git clone https://github.com/Annarummaarthur/MSPR4_Client
    git clone https://github.com/Annarummaarthur/MSPR4_Commandes
-   cd PayeTonKawa-Orchestrator
    ```
 
 2. **Ensure your API repositories are in the correct locations:**
    ```
-   PayeTonKawa-Orchestrator/
-   ../MSPR4_Client/          # Customer API
-   ../MSPR4_Produits/        # Product API  
-   ../MSPR4_Commandes/       # Order API
+   MSPR4_Global/          # Orchestration
+   MSPR4_Client/          # Customer API
+   MSPR4_Produits/        # Product API  
+   MSPR4_Commandes/       # Order API
    ```
 
 3. **Setup environment:**
