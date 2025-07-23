@@ -1,86 +1,94 @@
-# Makefile for PayeTonKawa Simple Orchestration
+# Makefile for PayeTonKawa Simple Orchestration (Windows Compatible)
 
 # Repository paths (adjust these to your actual paths)
-CUSTOMER_REPO_PATH = ../MSPR4_Client
-PRODUCT_REPO_PATH = ../MSPR4_Produits
-ORDER_REPO_PATH = ../MSPR4_Commandes
+CUSTOMER_REPO_PATH = ..\MSPR4_Client
+PRODUCT_REPO_PATH = ..\MSPR4_Produits
+ORDER_REPO_PATH = ..\MSPR4_Commandes
 
 # Docker image names
 CUSTOMER_IMAGE = payetonkawa/customer-api:latest
 PRODUCT_IMAGE = payetonkawa/product-api:latest
 ORDER_IMAGE = payetonkawa/order-api:latest
 
+# Detect OS for cross-platform compatibility
+ifeq ($(OS),Windows_NT)
+    SHELL := cmd.exe
+    RM := del /Q
+    MKDIR := mkdir
+    COPY := copy
+    EXISTS := if exist
+    NOT_EXISTS := if not exist
+    ECHO := echo
+    CD := cd /D
+else
+    RM := rm -f
+    MKDIR := mkdir -p
+    COPY := cp
+    EXISTS := [ -d
+    NOT_EXISTS := [ ! -d
+    ECHO := echo
+    CD := cd
+endif
+
 .PHONY: help setup build-all up down restart logs status clean
 
 # Default target
 help: ## Show this help message
-	@echo "PayeTonKawa Simple Orchestrator"
-	@echo "Available commands:"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@$(ECHO) PayeTonKawa Simple Orchestrator
+	@$(ECHO) Available commands:
+	@powershell -Command "Get-Content $(MAKEFILE_LIST) | Select-String '^[a-zA-Z_-]+:.*?## ' | ForEach-Object { $$parts = $$_.Line -split ':.*?## '; Write-Host ('  {0,-15} {1}' -f $$parts[0], $$parts[1]) }"
 
 # Setup
 setup: ## Create .env and check repos
-	@echo "Setting up PayeTonKawa..."
-	@if [ ! -f .env ]; then cp .env.example .env; echo ".env created"; fi
-	@make check-repos
-	@echo "Setup completed! Update your Supabase URLs in .env"
+	@$(ECHO) Setting up PayeTonKawa...
+	@if not exist .env $(COPY) .env.example .env && $(ECHO) .env created
+	@$(MAKE) check-repos
+	@$(ECHO) Setup completed! Update your Supabase URLs in .env
 
 check-repos: ## Check if all repository paths exist
-	@echo "Checking repositories..."
-	@if [ ! -d "$(CUSTOMER_REPO_PATH)" ]; then \
-		echo "Customer repo not found at $(CUSTOMER_REPO_PATH)"; \
-	else \
-		echo "Customer repo found"; \
-	fi
-	@if [ ! -d "$(PRODUCT_REPO_PATH)" ]; then \
-		echo "Product repo not found at $(PRODUCT_REPO_PATH)"; \
-	else \
-		echo "Product repo found"; \
-	fi
-	@if [ ! -d "$(ORDER_REPO_PATH)" ]; then \
-		echo "Order repo not found at $(ORDER_REPO_PATH)"; \
-	else \
-		echo "Order repo found"; \
-	fi
+	@$(ECHO) Checking repositories...
+	@if not exist "$(CUSTOMER_REPO_PATH)" ($(ECHO) Customer repo not found at $(CUSTOMER_REPO_PATH)) else ($(ECHO) Customer repo found)
+	@if not exist "$(PRODUCT_REPO_PATH)" ($(ECHO) Product repo not found at $(PRODUCT_REPO_PATH)) else ($(ECHO) Product repo found)
+	@if not exist "$(ORDER_REPO_PATH)" ($(ECHO) Order repo not found at $(ORDER_REPO_PATH)) else ($(ECHO) Order repo found)
 
 # Build images from your repos
 build-all: ## Build all API images from repositories
-	@echo "Building all images..."
-	@make build-customer
-	@make build-product
-	@make build-order
-	@echo "All images built!"
+	@$(ECHO) Building all images...
+	@$(MAKE) build-customer
+	@$(MAKE) build-product
+	@$(MAKE) build-order
+	@$(ECHO) All images built!
 
 build-customer: ## Build customer API image
-	@echo "Building customer API..."
-	@cd $(CUSTOMER_REPO_PATH) && docker build -t $(CUSTOMER_IMAGE) .
-	@echo "Customer API built!"
+	@$(ECHO) Building customer API...
+	@$(CD) "$(CUSTOMER_REPO_PATH)" && docker build -t $(CUSTOMER_IMAGE) .
+	@$(ECHO) Customer API built!
 
 build-product: ## Build product API image
-	@echo "Building product API..."
-	@cd $(PRODUCT_REPO_PATH) && docker build -t $(PRODUCT_IMAGE) .
-	@echo "Product API built!"
+	@$(ECHO) Building product API...
+	@$(CD) "$(PRODUCT_REPO_PATH)" && docker build -t $(PRODUCT_IMAGE) .
+	@$(ECHO) Product API built!
 
 build-order: ## Build order API image
-	@echo "Building order API..."
-	@cd $(ORDER_REPO_PATH) && docker build -t $(ORDER_IMAGE) .
-	@echo "Order API built!"
+	@$(ECHO) Building order API...
+	@$(CD) "$(ORDER_REPO_PATH)" && docker build -t $(ORDER_IMAGE) .
+	@$(ECHO) Order API built!
 
 # Docker operations
 up: ## Start all services
-	@echo "Starting PayeTonKawa platform..."
+	@$(ECHO) Starting PayeTonKawa platform...
 	@docker-compose up -d
-	@make status
+	@$(MAKE) status
 
 down: ## Stop all services
-	@echo "Stopping platform..."
+	@$(ECHO) Stopping platform...
 	@docker-compose down
-	@echo "Platform stopped!"
+	@$(ECHO) Platform stopped!
 
 restart: ## Restart everything (rebuild + restart)
-	@make down
-	@make build-all
-	@make up
+	@$(MAKE) down
+	@$(MAKE) build-all
+	@$(MAKE) up
 
 # Logs
 logs: ## Show logs from all services
@@ -94,60 +102,49 @@ logs-apis: ## Show API logs only
 
 # Status and health
 status: ## Show service status and URLs
-	@echo "Service Status:"
+	@$(ECHO) Service Status:
 	@docker-compose ps
-	@echo ""
-	@echo "Access Your APIs:"
-	@echo "  Customer API:  http://localhost:8001/docs (container port 8002)"
-	@echo "  Product API:   http://localhost:8002/docs (container port 8003)"
-	@echo "  Order API:     http://localhost:8003/docs (container port 8001)"
-	@echo "  RabbitMQ UI:   http://localhost:15672 (admin/payetonkawa_rabbit)"
-	@echo ""
+	@$(ECHO).
+	@$(ECHO) Access Your APIs:
+	@$(ECHO)   Customer API:  http://localhost:8001/docs (container port 8002)
+	@$(ECHO)   Product API:   http://localhost:8002/docs (container port 8003)
+	@$(ECHO)   Order API:     http://localhost:8003/docs (container port 8001)
+	@$(ECHO)   RabbitMQ UI:   http://localhost:15672 (admin/payetonkawa_rabbit)
+	@$(ECHO).
 
 health: ## Check API health
-	@echo "Checking API health..."
-	@for port in 8001 8002 8003; do \
-		name=""; \
-		if [ $$port -eq 8001 ]; then name="Customer"; \
-		elif [ $$port -eq 8002 ]; then name="Product"; \
-		elif [ $$port -eq 8003 ]; then name="Order"; \
-		fi; \
-		if curl -s http://localhost:$$port/health >/dev/null 2>&1; then \
-			echo "$$name API ($$port) - OK"; \
-		else \
-			echo "$$name API ($$port) - FAIL"; \
-		fi; \
-	done
+	@$(ECHO) Checking API health...
+	@powershell -Command "$$ports = @(8001, 8002, 8003); $$names = @('Customer', 'Product', 'Order'); for ($$i=0; $$i -lt $$ports.Length; $$i++) { try { $$response = Invoke-WebRequest -Uri \"http://localhost:$$($$ports[$$i])/health\" -TimeoutSec 5 -UseBasicParsing; Write-Host \"$$($$names[$$i]) API ($$($$ports[$$i])) - OK\" } catch { Write-Host \"$$($$names[$$i]) API ($$($$ports[$$i])) - FAIL\" } }"
 
 # Development workflow
 dev: ## Quick development start (build + up)
-	@make build-all
-	@make up
+	@$(MAKE) build-all
+	@$(MAKE) up
 
 quick: ## Quick start (assumes images exist)
-	@make up
+	@$(MAKE) up
 
 # Cleanup
 clean: ## Clean up everything
-	@echo "Cleaning up..."
+	@$(ECHO) Cleaning up...
 	@docker-compose down -v
-	@docker rmi $(CUSTOMER_IMAGE) $(PRODUCT_IMAGE) $(ORDER_IMAGE) 2>/dev/null || true
-	@echo "Cleanup done!"
+	@docker rmi $(CUSTOMER_IMAGE) $(PRODUCT_IMAGE) $(ORDER_IMAGE) 2>nul || $(ECHO) Images removed or not found
+	@$(ECHO) Cleanup done!
 
 # Testing
 test: ## Run tests on all APIs
-	@echo "Running tests..."
-	@docker-compose exec customer-api python -m pytest tests/ -v || true
-	@docker-compose exec product-api python -m pytest tests/ -v || true
-	@docker-compose exec order-api python -m pytest tests/ -v || true
+	@$(ECHO) Running tests...
+	@docker-compose exec customer-api python -m pytest tests/ -v || $(ECHO) Customer tests completed
+	@docker-compose exec product-api python -m pytest tests/ -v || $(ECHO) Product tests completed
+	@docker-compose exec order-api python -m pytest tests/ -v || $(ECHO) Order tests completed
 
 # Utility
 shell: ## Access specific service shell (usage: make shell SERVICE=customer-api)
-	@if [ -z "$(SERVICE)" ]; then \
-		echo "Specify SERVICE: make shell SERVICE=customer-api"; \
-		exit 1; \
-	fi
+ifdef SERVICE
 	@docker-compose exec $(SERVICE) /bin/bash
+else
+	@$(ECHO) Specify SERVICE: make shell SERVICE=customer-api
+endif
 
 ps: ## Show running containers
 	@docker-compose ps
